@@ -1,0 +1,60 @@
+<!doctype html>
+<html ng-app="demo">
+
+<head>
+    <script src="bower_components/angular/angular.js"></script>
+    <script>
+    angular.module('demo', ['ng'])
+        .config(['starwarsProvider', function(starwarsProvider) {
+            starwarsProvider.setApiUrl('http://swapi.co/api');
+        }])
+        .provider('starwars', function() {
+            var apiUrl = null;
+            this.setApiUrl = function(url) {
+                apiUrl = url;
+            };
+
+            this.$get = ['$http', function($http) {
+
+                return {
+                    people: function(id) {
+                        var promise = null;
+                        if (typeof id != undefined) {
+                            promise = $http.get(apiUrl + '/people/' + id);
+                        } else {
+                            promise = $http.get(apiUrl + '/people');
+                        }
+
+                        return promise.then(function(resp) {
+                            return resp.data;
+                        });
+                    }
+                };
+            }];
+        })
+        .controller('demoController', ['starwars', '$scope', function(starwars, $scope) {
+
+            var self = this;
+
+            starwars.people().then(function(list) {
+                self.peopleList = list;
+            });
+
+        }]);
+    </script>
+</head>
+
+<body ng-controller="demoController as ctrl">
+    <div>
+        <form>
+            <input type="search" ng-model="ctrl.searchText" />
+        </form>
+    </div>
+    <ul>
+        <li ng-repeat="p in ctrl.peopleList | filter ctrl.searchText">
+            {{p.name }}
+        </li>
+    </ul>
+</body>
+
+</html>
