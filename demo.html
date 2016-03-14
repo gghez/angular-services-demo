@@ -5,11 +5,18 @@
     <script src="bower_components/angular/angular.js"></script>
     <script>
     angular.module('demo', ['ng'])
-        .config(['starwarsProvider', function(starwarsProvider) {
-            starwarsProvider.setApiUrl('http://swapi.co/api');
+    	.constant('apiUrl', 'http://swapi.co/api')
+        .config(['starwarsProvider', '$sceProvider', 'apiUrl', function(starwarsProvider, $sceProvider, apiUrl) {
+
+            starwarsProvider.setApiUrl(apiUrl);
+
+            // Completely disable SCE.  For demonstration purposes only!
+            // Do not use in new projects.
+            $sceProvider.enabled(false);
         }])
         .provider('starwars', function() {
             var apiUrl = null;
+            
             this.setApiUrl = function(url) {
                 apiUrl = url;
             };
@@ -19,7 +26,7 @@
                 return {
                     people: function(id) {
                         var promise = null;
-                        if (typeof id != undefined) {
+                        if (typeof id != 'undefined') {
                             promise = $http.get(apiUrl + '/people/' + id);
                         } else {
                             promise = $http.get(apiUrl + '/people');
@@ -32,16 +39,29 @@
                 };
             }];
         })
+        .filter('highlightInName', function() {
+            return function(str, needle) {
+                return str.replace(needle, '<strong>' + needle + '</strong>');
+            };
+        })
         .controller('demoController', ['starwars', '$scope', function(starwars, $scope) {
 
             var self = this;
 
-            starwars.people().then(function(list) {
-                self.peopleList = list;
+            starwars.people().then(function(data) {
+                self.peopleList = data.results;
             });
 
+        }])
+        .run(['starwars', function(starwars){
+        	// TODO: preload
         }]);
     </script>
+    <style>
+    strong {
+        background: yellow;
+    }
+    </style>
 </head>
 
 <body ng-controller="demoController as ctrl">
@@ -51,8 +71,7 @@
         </form>
     </div>
     <ul>
-        <li ng-repeat="p in ctrl.peopleList | filter ctrl.searchText">
-            {{p.name }}
+        <li ng-repeat="p in ctrl.peopleList | filter:{name:ctrl.searchText}" ng-bind-html="p.name | highlightInName:ctrl.searchText">
         </li>
     </ul>
 </body>
